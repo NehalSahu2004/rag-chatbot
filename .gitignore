@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+dist/
+
+# RAG Data
+chroma_db/
+uploads/
+
+# Environment
+.env
+
+# Local chat storage
+chat_history.json
+
+# IDE
+.idea/
