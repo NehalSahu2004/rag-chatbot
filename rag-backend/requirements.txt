@@ -5,9 +5,9 @@ pymupdf
 langchain
 sentence-transformers
 chromadb
-google-generativeai
+groq
 python-dotenv
-
+pytesseract==0.3.13
 python-jose[cryptography]
 passlib[bcrypt]
 email-validator
