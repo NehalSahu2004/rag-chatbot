@@ -19,16 +19,13 @@ MODEL_NAME = (
 )
 
 
-
 def build_prompt(
     question,
     docs,
     history
 ):
 
-
     context = ""
-
 
     for doc in docs:
 
@@ -43,10 +40,7 @@ CONTENT:
 
 """
 
-
-
     memory_context = ""
-
 
     for item in history[-5:]:
 
@@ -55,62 +49,90 @@ CONTENT:
 USER:
 {item['question']}
 
-
 ASSISTANT:
 {item['answer']}
 
 """
 
-
-
-
     prompt = f"""
 
-You are a conversational RAG assistant.
+You are a professional Multi-PDF RAG Assistant.
 
-Use:
-1. chat history
-2. retrieved documents
+You must answer ONLY from the provided documents.
 
+====================================================
+RULES
+====================================================
 
-Rules:
+1. Never invent information.
 
-- Answer only from documents
-- Use markdown formatting
-- Be clear and helpful
+2. If information is not present in the documents, say:
 
+   "The documents do not contain enough information."
 
+3. Always use markdown formatting.
 
-====================
+4. Cite supporting sources whenever possible.
+
+5. Be concise but complete.
+
+====================================================
+COMPARISON RULES
+====================================================
+
+If the user asks to:
+
+- compare
+- difference
+- differences
+- contrast
+- vs
+- versus
+
+AND information comes from multiple PDFs,
+
+THEN create a MARKDOWN TABLE.
+
+Example:
+
+| Policy | Employee Handbook | HR Policy |
+|----------|----------|----------|
+| Annual Leave | 15 Days | 20 Days |
+| Sick Leave | 5 Days | 10 Days |
+
+After the table provide:
+
+## Key Findings
+
+- Finding 1
+- Finding 2
+- Finding 3
+
+Do NOT write long paragraphs before the table.
+
+The table must appear first.
+
+====================================================
 CHAT HISTORY
-====================
+====================================================
 
 {memory_context}
 
-
-
-====================
+====================================================
 DOCUMENT CONTEXT
-====================
+====================================================
 
 {context}
 
-
-
-====================
+====================================================
 QUESTION
-====================
+====================================================
 
 {question}
 
 """
 
-
     return prompt
-
-
-
-
 
 
 def generate_answer(
@@ -119,31 +141,23 @@ def generate_answer(
     history
 ):
 
-
     prompt = build_prompt(
         question,
         docs,
         history
     )
 
-
-
     response = (
         client.chat.completions.create(
-
             model=MODEL_NAME,
-
             messages=[
                 {
-                    "role":"user",
-                    "content":prompt
+                    "role": "user",
+                    "content": prompt
                 }
             ]
-
         )
     )
-
-
 
     return (
         response
@@ -153,17 +167,11 @@ def generate_answer(
     )
 
 
-
-
-
-
-
 def stream_answer(
     question,
     docs,
     history
 ):
-
 
     prompt = build_prompt(
         question,
@@ -171,31 +179,20 @@ def stream_answer(
         history
     )
 
-
-
     stream = (
         client.chat.completions.create(
-
             model=MODEL_NAME,
-
-
             messages=[
                 {
-                    "role":"user",
-                    "content":prompt
+                    "role": "user",
+                    "content": prompt
                 }
             ],
-
-
             stream=True
-
         )
     )
 
-
-
     for chunk in stream:
-
 
         token = (
             chunk
@@ -203,7 +200,6 @@ def stream_answer(
             .delta
             .content
         )
-
 
         if token:
 

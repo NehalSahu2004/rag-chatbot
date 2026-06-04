@@ -1,21 +1,41 @@
 import json
 
-from fastapi import APIRouter
-from fastapi.responses import StreamingResponse
+from fastapi import (
+    APIRouter,
+    Depends
+)
+
+from fastapi.responses import (
+    StreamingResponse
+)
 
 from pydantic import BaseModel
 
+from app.services.dependencies import (
+    get_current_user
+)
 
-from app.services.retriever import retrieve_documents
-from app.services.reranker import rerank
-from app.services.llm import stream_answer
+from app.services.retriever import (
+    retrieve_documents
+)
 
-from app.memory_store import chat_memory
+from app.services.reranker import (
+    rerank
+)
 
+from app.services.llm import (
+    stream_answer
+)
 
+from app.services.chat_store import (
+    save_message
+)
+
+from app.memory_store import (
+    chat_memory
+)
 
 router = APIRouter()
-
 
 
 class StreamRequest(BaseModel):
@@ -27,50 +47,51 @@ class StreamRequest(BaseModel):
     compare: bool = False
 
 
-
-
-
 @router.post("/chat/stream")
 def chat_stream(
-    request: StreamRequest
+    request: StreamRequest,
+    current_user=Depends(
+        get_current_user
+    )
 ):
 
+    user_id = current_user["user_id"]
 
-    docs = retrieve_documents(
+    save_message(
+        user_id,
+        request.session_id,
+        "user",
         request.question
     )
 
+    docs = retrieve_documents(
+        request.question,
+        user_id
+    )
 
     docs = rerank(
         request.question,
         docs
     )
 
+    memory_key = (
+        f"user_{user_id}_"
+        f"{request.session_id}"
+    )
 
-
-    if request.session_id not in chat_memory:
+    if memory_key not in chat_memory:
 
         chat_memory[
-            request.session_id
+            memory_key
         ] = []
 
-
-
     history = chat_memory[
-        request.session_id
+        memory_key
     ]
-
-
-
-
 
     def generate():
 
-
-        # =====================
-        # STREAM TOKENS
-        # =====================
-
+        full_answer = ""
 
         for chunk in stream_answer(
             request.question,
@@ -78,85 +99,82 @@ def chat_stream(
             history
         ):
 
+            full_answer += chunk
 
             yield (
                 json.dumps(
                     {
                         "type":
-                        "answer",
+                            "answer",
 
                         "data":
-                        chunk
+                            chunk
                     }
                 )
                 +
                 "\n"
             )
 
-
-
-
-
-
-        # =====================
-        # SEND SOURCES
-        # =====================
-
-
         sources = []
 
-
         for doc in docs:
-
 
             sources.append(
                 {
                     "pdf_name":
-
-                    doc.get(
-                        "pdf_name",
-                        "Unknown PDF"
-                    ),
-
+                        doc.get(
+                            "pdf_name",
+                            "Unknown PDF"
+                        ),
 
                     "page":
+                        doc.get(
+                            "page",
+                            1
+                        ),
 
-                    doc.get(
-                        "page",
-                        1
-                    )
+                    "text":
+                        doc.get(
+                            "text",
+                            ""
+                        )[:400]
                 }
             )
 
+        save_message(
+            user_id,
+            request.session_id,
+            "assistant",
+            full_answer,
+            sources
+        )
 
+        history.append(
+            {
+                "question":
+                    request.question,
 
-
+                "answer":
+                    full_answer
+            }
+        )
 
         yield (
             json.dumps(
                 {
                     "type":
-                    "sources",
+                        "sources",
 
                     "data":
-                    sources
+                        sources
                 }
             )
             +
             "\n"
         )
 
-
-
-
-
-
-
     return StreamingResponse(
-
         generate(),
-
         media_type=
         "application/x-ndjson"
-
     )

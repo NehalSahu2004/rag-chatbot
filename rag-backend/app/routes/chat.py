@@ -1,22 +1,35 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from app.services.dependencies import (
+    get_current_user
+)
 
-from app.services.retriever import retrieve_documents
-from app.services.reranker import rerank
-from app.services.llm import generate_answer
-from app.services.comparer import compare_documents
+from app.services.retriever import (
+    retrieve_documents
+)
 
+from app.services.reranker import (
+    rerank
+)
 
-from app.services.chat_store import save_message
+from app.services.llm import (
+    generate_answer
+)
 
+from app.services.comparer import (
+    compare_documents
+)
 
-from app.memory_store import chat_memory
+from app.services.chat_store import (
+    save_message
+)
 
-
+from app.memory_store import (
+    chat_memory
+)
 
 router = APIRouter()
-
 
 
 class ChatRequest(BaseModel):
@@ -28,76 +41,56 @@ class ChatRequest(BaseModel):
     session_id: str = "default"
 
 
-
-
 @router.post("/chat")
 def chat(
-    request: ChatRequest
+    request: ChatRequest,
+    current_user=Depends(
+        get_current_user
+    )
 ):
 
+    user_id = current_user["user_id"]
 
-    # =========================
-    # SAVE USER MESSAGE
-    # =========================
+    memory_key = (
+        f"user_{user_id}_"
+        f"{request.session_id}"
+    )
 
     save_message(
+        user_id,
         request.session_id,
         "user",
         request.question
     )
 
-
-
-    # =========================
-    # RETRIEVE DOCUMENTS
-    # =========================
-
     docs = retrieve_documents(
-        request.question
+        request.question,
+        user_id
     )
-
 
     docs = rerank(
         request.question,
         docs
     )
 
-
-
-    # =========================
-    # MEMORY
-    # =========================
-
-    if request.session_id not in chat_memory:
+    if memory_key not in chat_memory:
 
         chat_memory[
-            request.session_id
+            memory_key
         ] = []
 
-
-
     history = chat_memory[
-        request.session_id
+        memory_key
     ]
 
-
-
-    # =========================
-    # GENERATE RESPONSE
-    # =========================
-
-
     if request.compare:
-
 
         answer = compare_documents(
             request.question,
             docs
         )
 
-
     else:
-
 
         answer = generate_answer(
             request.question,
@@ -105,23 +98,13 @@ def chat(
             history
         )
 
-
-
-
-    # =========================
-    # SAVE ASSISTANT MESSAGE
-    # =========================
-
-
     save_message(
+        user_id,
         request.session_id,
         "assistant",
         answer
     )
 
-
-
-    # old memory system
     history.append(
         {
             "question":
@@ -132,23 +115,19 @@ def chat(
         }
     )
 
-
-
-
-    # =========================
-    # RESPONSE
-    # =========================
-
-
     return {
+
+        "user_id":
+            user_id,
+
+        "session_id":
+            request.session_id,
 
         "question":
             request.question,
 
-
         "answer":
             answer,
-
 
         "sources":
             docs

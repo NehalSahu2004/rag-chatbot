@@ -16,17 +16,24 @@ client = chromadb.PersistentClient(
 )
 
 
-collection = client.get_or_create_collection(
-    name="rag_collection"
-)
+def get_user_collection(
+    user_id: int
+):
 
-
+    return client.get_or_create_collection(
+        name=f"user_{user_id}_docs"
+    )
 
 
 def store_embeddings(
+    user_id,
     chunks,
     embeddings
 ):
+
+    collection = get_user_collection(
+        user_id
+    )
 
     ids = []
     documents = []
@@ -51,11 +58,12 @@ def store_embeddings(
                 chunk["page"],
 
                 "chunk_id":
-                chunk["chunk_id"]
+                chunk["chunk_id"],
+
+                "user_id":
+                user_id
             }
         )
-
-
 
     collection.add(
         ids=ids,
@@ -65,14 +73,15 @@ def store_embeddings(
     )
 
 
-
-
-
-
 def query_embeddings(
+    user_id,
     query_embedding,
     n_results=10
 ):
+
+    collection = get_user_collection(
+        user_id
+    )
 
     return collection.query(
         query_embeddings=[
@@ -82,22 +91,17 @@ def query_embeddings(
     )
 
 
+def get_all_documents(
+    user_id
+):
 
-
-
-
-# =========================
-# NEW FUNCTIONS
-# =========================
-
-
-def get_all_documents():
+    collection = get_user_collection(
+        user_id
+    )
 
     data = collection.get()
 
-
     pdfs = set()
-
 
     for meta in data["metadatas"]:
 
@@ -105,32 +109,28 @@ def get_all_documents():
             meta["pdf_name"]
         )
 
-
     return sorted(
         list(pdfs)
     )
 
 
-
-
-
-
 def delete_document(
+    user_id,
     filename
 ):
 
+    collection = get_user_collection(
+        user_id
+    )
 
     data = collection.get()
 
-
     ids_to_delete = []
-
 
     for idx, meta in zip(
         data["ids"],
         data["metadatas"]
     ):
-
 
         if (
             meta["pdf_name"]
@@ -142,15 +142,11 @@ def delete_document(
                 idx
             )
 
-
-
     if ids_to_delete:
 
         collection.delete(
             ids=ids_to_delete
         )
-
-
 
     return len(
         ids_to_delete

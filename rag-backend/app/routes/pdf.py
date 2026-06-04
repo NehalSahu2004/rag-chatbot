@@ -1,16 +1,20 @@
 import os
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Depends
+)
 
+from fastapi.responses import (
+    FileResponse
+)
+
+from app.services.dependencies import (
+    get_current_user
+)
 
 router = APIRouter()
-
-
-
-# =========================
-# FIXED UPLOAD PATH
-# =========================
 
 
 BASE_DIR = os.path.abspath(
@@ -28,81 +32,37 @@ UPLOAD_DIR = os.path.join(
 )
 
 
-
-
-
 @router.get("/pdf/{filename}")
 def get_pdf(
-    filename: str
+    filename: str,
+    current_user=Depends(
+        get_current_user
+    )
 ):
 
+    user_id = current_user["user_id"]
 
-    print(
-        "PDF REQUEST:",
-        filename
+    user_upload_dir = os.path.join(
+        UPLOAD_DIR,
+        f"user_{user_id}"
     )
-
-
-    print(
-        "SEARCHING:",
-        UPLOAD_DIR
-    )
-
-
 
     file_path = os.path.join(
-        UPLOAD_DIR,
+        user_upload_dir,
         filename
     )
-
-
-
-    print(
-        "FULL PATH:",
-        file_path
-    )
-
-
 
     if not os.path.exists(
         file_path
     ):
 
-
-        print(
-            "PDF NOT FOUND"
-        )
-
-
-        print(
-            "AVAILABLE FILES:",
-            os.listdir(
-                UPLOAD_DIR
-            )
-        )
-
-
-
         raise HTTPException(
-
             status_code=404,
-
-            detail=
-            "PDF not found"
-
+            detail="PDF not found"
         )
-
-
-
 
     return FileResponse(
-
         file_path,
-
-        media_type=
-        "application/pdf",
-
-        filename=
-        filename
-
+        media_type="application/pdf",
+        filename=filename
     )

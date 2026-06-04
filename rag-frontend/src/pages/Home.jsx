@@ -1,17 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
-
+import API from "../api/api";
 
 function Home() {
 
-
   const [sessionId, setSessionId] =
     useState(
+      localStorage.getItem(
+        "currentSessionId"
+      ) ||
       Date.now().toString()
     );
-
 
   const [messages, setMessages] =
     useState([
@@ -23,7 +24,51 @@ function Home() {
       }
     ]);
 
+  useEffect(() => {
 
+    localStorage.setItem(
+      "currentSessionId",
+      sessionId
+    );
+
+  }, [sessionId]);
+
+  useEffect(() => {
+
+    const loadCurrentChat =
+      async () => {
+
+        try {
+
+          const response =
+            await API.get(
+              `/history/${sessionId}`
+            );
+
+          if (
+            response.data.messages &&
+            response.data.messages.length > 0
+          ) {
+
+            setMessages(
+              response.data.messages
+            );
+
+          }
+
+        }
+
+        catch (error) {
+
+          console.log(error);
+
+        }
+
+      };
+
+    loadCurrentChat();
+
+  }, [sessionId]);
 
   return (
 
@@ -37,34 +82,21 @@ function Home() {
       "
     >
 
-
-      {/* SIDEBAR */}
-
-
       <Sidebar
 
         sessionId={
           sessionId
         }
 
-
         setSessionId={
           setSessionId
         }
-
 
         setMessages={
           setMessages
         }
 
       />
-
-
-
-
-
-      {/* MAIN CHAT AREA */}
-
 
       <div
         className="
@@ -73,11 +105,6 @@ function Home() {
           flex-col
         "
       >
-
-
-
-        {/* TOP BAR */}
-
 
         <div
           className="
@@ -101,15 +128,7 @@ function Home() {
 
           </h2>
 
-
         </div>
-
-
-
-
-
-        {/* CHAT */}
-
 
         <div
           className="
@@ -119,18 +138,15 @@ function Home() {
           "
         >
 
-
           <ChatWindow
 
             sessionId={
               sessionId
             }
 
-
             messages={
               messages
             }
-
 
             setMessages={
               setMessages
@@ -138,18 +154,14 @@ function Home() {
 
           />
 
-
         </div>
 
-
       </div>
-
 
     </div>
 
   );
 
 }
-
 
 export default Home;

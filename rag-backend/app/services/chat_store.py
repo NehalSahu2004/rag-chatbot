@@ -8,7 +8,9 @@ CHAT_FILE = "chat_history.json"
 
 def load_data():
 
-    if not os.path.exists(CHAT_FILE):
+    if not os.path.exists(
+        CHAT_FILE
+    ):
         return {}
 
     with open(
@@ -31,100 +33,144 @@ def save_data(data):
         json.dump(
             data,
             f,
-            indent=4
+            indent=4,
+            ensure_ascii=False
         )
 
 
 def save_message(
+    user_id,
     session_id,
     role,
-    content
+    content,
+    sources=None
 ):
 
     data = load_data()
 
-    if session_id not in data:
+    user_key = (
+        f"user_{user_id}"
+    )
 
-        data[session_id] = {
+    if user_key not in data:
+
+        data[user_key] = {}
+
+    if session_id not in data[user_key]:
+
+        data[user_key][session_id] = {
 
             "created":
-            str(datetime.now()),
+                str(datetime.now()),
 
             "title":
-            content[:40],
+                content[:40],
 
             "messages":
-            []
+                []
         }
 
-    data[session_id]["messages"].append(
-
+    data[user_key][session_id][
+        "messages"
+    ].append(
         {
             "role":
-            role,
+                role,
 
             "content":
-            content
-        }
+                content,
 
+            "sources":
+                sources or []
+        }
     )
 
     save_data(data)
 
 
-def get_sessions():
+def get_sessions(
+    user_id
+):
 
     data = load_data()
 
+    user_key = (
+        f"user_{user_id}"
+    )
+
+    if user_key not in data:
+
+        return []
+
     result = []
 
-    for sid, chat in data.items():
+    for sid, chat in data[
+        user_key
+    ].items():
 
         result.append(
-
             {
                 "session_id":
-                sid,
+                    sid,
 
                 "title":
-                chat["title"]
+                    chat["title"]
             }
-
         )
 
     return result
 
 
 def get_messages(
+    user_id,
     session_id
 ):
 
     data = load_data()
 
-    if session_id not in data:
+    user_key = (
+        f"user_{user_id}"
+    )
+
+    if user_key not in data:
+
+        return []
+
+    if session_id not in data[
+        user_key
+    ]:
 
         return []
 
     return data[
-        session_id
-    ]["messages"]
+        user_key
+    ][session_id][
+        "messages"
+    ]
 
-
-# ==========================
-# NEW FUNCTIONS
-# ==========================
 
 def delete_session(
+    user_id,
     session_id
 ):
 
     data = load_data()
 
-    if session_id in data:
+    user_key = (
+        f"user_{user_id}"
+    )
+
+    if user_key not in data:
+
+        return False
+
+    if session_id in data[
+        user_key
+    ]:
 
         del data[
-            session_id
-        ]
+            user_key
+        ][session_id]
 
         save_data(data)
 
@@ -133,8 +179,20 @@ def delete_session(
     return False
 
 
-def clear_history():
+def clear_history(
+    user_id
+):
 
-    save_data({})
+    data = load_data()
+
+    user_key = (
+        f"user_{user_id}"
+    )
+
+    if user_key in data:
+
+        data[user_key] = {}
+
+        save_data(data)
 
     return True

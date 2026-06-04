@@ -19,3 +19,6 @@ chat_history.json
 
 # IDE
 .idea/
+
+users.db
+*.db
