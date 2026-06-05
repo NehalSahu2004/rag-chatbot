@@ -1,11 +1,26 @@
 from sentence_transformers import SentenceTransformer
 
-model = SentenceTransformer(
-    "BAAI/bge-small-en"
-)
+_model = None
+
+
+def get_model():
+    global _model
+
+    if _model is None:
+        print("Loading embedding model...")
+        _model = SentenceTransformer(
+            "BAAI/bge-small-en"
+        )
+
+    return _model
+
 
 def generate_embeddings(texts):
 
-    embeddings = model.encode(texts)
+    model = get_model()
+
+    embeddings = model.encode(
+        texts
+    )
 
     return embeddings.tolist()

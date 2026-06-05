@@ -9,9 +9,9 @@ from app.services.retriever import (
     retrieve_documents
 )
 
-from app.services.reranker import (
-    rerank
-)
+#from app.services.reranker import (
+   # rerank
+#)
 
 from app.services.llm import (
     generate_answer
@@ -68,10 +68,10 @@ def chat(
         user_id
     )
 
-    docs = rerank(
+    '''docs = rerank(
         request.question,
         docs
-    )
+    )'''
 
     if memory_key not in chat_memory:
 

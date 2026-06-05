@@ -1,4 +1,4 @@
-from app.services.embeddings import model
+from app.services.embeddings import get_model
 from app.db.chroma import query_embeddings
 
 
@@ -6,6 +6,8 @@ def retrieve_documents(
     question,
     user_id
 ):
+
+    model = get_model()
 
     query_embedding = model.encode(
         question
@@ -28,14 +30,9 @@ def retrieve_documents(
 
         retrieved_docs.append(
             {
-                "text":
-                    doc,
-
-                "pdf_name":
-                    meta["pdf_name"],
-
-                "page":
-                    meta["page"]
+                "text": doc,
+                "pdf_name": meta["pdf_name"],
+                "page": meta["page"]
             }
         )
 
