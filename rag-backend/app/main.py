@@ -86,17 +86,17 @@ app.include_router(
     upload_router
 )
 
-app.include_router(
+'''app.include_router(
     chat_router
-)
+)'''
 
 app.include_router(
     history_router
 )
 
-app.include_router(
+'''app.include_router(
     stream_router
-)
+)'''
 
 app.include_router(
     documents_router
